@@ -1,0 +1,173 @@
+<html>
+	<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>二次绘制地月系</title>
+  <!--库js的引入-->  
+	<script type="text/javascript" src="js/util/Matrix.js"></script>
+	<script type="text/javascript" src="js/util/MatrixState.js"></script>	
+	<script type="text/javascript" src="js/util/GLUtil.js"></script>	
+	<script type="text/javascript" src="js/util/LoadShaderUtil.js"></script>
+	<script type="text/javascript" src="js/util/LoadObjUtil.js"></script>
+	<script type="text/javascript" src="js/util/ObjObject.js"></script>
+	<script type="text/javascript" src="js/util/LightManager.js"></script>
+	<script type="text/javascript" src="js/util/FrameGlobalVar.js"></script>
+	<!--应用特有js的引入-->
+	<script type="text/javascript" src="js/loadBall.js"></script>
+		<script type="text/javascript" src="js/util/Celestial.js"></script>
+	<script>
+		//加载着色器
+		function initShader(){
+		    for(var i=0;i<shaderPath.length;i++){
+		        loadShaderFile(shaderPath[i],i);
+			}
+			if(shaderProgArray[0]&&shaderProgArray[1]&&shaderProgArray[2]&&shaderProgArray[3]){
+		        shaderFlag=true;
+			}else{
+                timeID=setInterval("initShader();",20);
+			}
+		}
+	    //初始化的方法
+	    function start()
+	    {
+	        //获取GLES上下文
+	        gl = initWebGLCanvas("bncanvas");
+	        if (!gl)
+	        {
+	        	 alert("创建GLES上下文失败!");
+	           return;
+	        }
+            initTextureFramebuffer();
+            //加载着色器
+			initShader();
+	        //初始化3D画布参数
+			canvas = document.getElementById('bncanvas');
+	        //着色器加载完了加载绘制者
+			loadBallObjFile("obj/ballT.obj");
+			loadBallObjFile("obj/plane.obj");
+			createObject();
+            //加载地球纹理图
+            loadImageTexture(gl, "pic/earth.png","earth");
+            loadImageTexture(gl, "pic/earthNight.png","earthNight");
+            loadImageTexture(gl, "pic/moon.png","moon");
+            //设置光源位置
+            lightManager.setLightLocation(50,0,0);
+	        //初始化旋转角度
+	        currentAngle = 0;
+			cAngle=0;
+	        //初始化角度步进
+	        incAngle = 1;
+	        //绘制画面
+	        setInterval("drawFrame();",30);
+	    }
+	    function initTextureFramebuffer(){ //初始化帧缓冲  添加颜色和深度信息
+            rttFramebuffer=gl.createFramebuffer();
+            gl.bindFramebuffer(gl.FRAMEBUFFER,rttFramebuffer);
+            rttFramebuffer.width=512;
+            rttFramebuffer.height=512;
+
+            rttTexture=gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D,rttTexture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, rttFramebuffer.width, rttFramebuffer.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+            var renderbuffer = gl.createRenderbuffer();//初始化深度缓冲
+            gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+            gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, rttFramebuffer.width, rttFramebuffer.height);
+
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rttTexture, 0);//为帧缓冲添加颜色
+            gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);//添加深度信息
+
+            gl.bindTexture(gl.TEXTURE_2D, null);
+            gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		}
+	    //绘制一帧画面的方法
+	    function drawFrame()
+	    {
+	        //若还没有加载完则不绘制
+	        if(!ooTriBall||!celestial||!plane) {
+	            alert("加载未完成");
+	            return;
+	        }
+	        once();
+            gl.bindTexture(gl.TEXTURE_2D, rttTexture);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+	        twice();
+	    }
+	    function once(){
+            gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
+            //设置视口
+            gl.viewport(0, 0, rttFramebuffer.width, rttFramebuffer.height);
+            //设置屏幕背景色RGBA
+            gl.clearColor(0.0,0.0,0.0,1.0);
+            //初始化变换矩阵
+            ms.setInitStack();
+            //设置摄像机
+            ms.setCamera(0,0,50,0,0,0,0,1,0);
+            //设置投影
+            ms.setProjectFrustum(-(rttFramebuffer.width/rttFramebuffer.height),rttFramebuffer.width/rttFramebuffer.height,-1,1,3,200);
+            //清除着色缓冲与深度缓冲
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            //保护现场
+            ms.pushMatrix();
+            //绕Y轴旋转
+            ms.rotate(currentAngle,0,1,0);
+            //绘制地球
+            ooTriBall.drawEarth(ms,texMap["earth"],texMap["earthNight"],shaderProgArray[0]);
+            //沿X轴推
+            ms.translate(10,0,0);
+            //绕Y轴旋转
+            ms.rotate(currentAngle,0,1,0);
+            //缩放
+            ms.scale(0.5,0.5,0.5);
+            //绘制月球
+            ooTriBall.drawMoon(ms,texMap["moon"],shaderProgArray[2]);
+            //恢复现场
+            ms.popMatrix();
+            ms.pushMatrix();
+            ms.rotate(cAngle,0,1,0);
+            celestial.drawSelf(ms,1.0);
+            celestial1.drawSelf(ms,2.0);
+            ms.popMatrix();
+            //修改旋转角度
+            currentAngle += incAngle;
+            cAngle=cAngle+0.1;
+            if (currentAngle > 360)
+            {
+                cAngle-=360;
+                currentAngle -= 360;
+            }
+        }
+		function twice(){
+            //修改旋转角度
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.clearColor(1.0,1.0,1.0,1.0);
+            gl.viewport(0, 0, canvas.width,canvas.height);
+            //初始化变换矩阵
+            ms.setInitStack();
+            //设置摄像机
+            ms.setCamera(0,0,50,0,0,0,0,1,0);
+            //设置投影
+            ms.setProjectFrustum(-(canvas.width/canvas.height),canvas.width/canvas.height,-1,1,3,200);
+            //清除着色缓冲与深度缓冲
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            //保护现场
+            ms.pushMatrix();
+            //绘制地球
+			ms.scale(0.25,0.25,0.25);
+			ms.rotate(90,1,0,0);
+            plane.drawPlane(ms,shaderProgArray[3]);
+            ms.popMatrix();
+		}
+	</script>
+</head>
+
+<body onload="start();">
+	<canvas height="768" width="1366" id="bncanvas">
+	    若看到这个文字，说明浏览器不支持WebGL!
+	</canvas>
+</body>
+</html>
