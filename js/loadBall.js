@@ -15,8 +15,8 @@
 		        objArr.push(dataTemp);
 		    }
 		}
-        function createObject(){
-			if(shaderFlag){
+                function createObject(){
+			if(shaderFlag&&objArr.length==2){
                 ooTriBall=new ObjObjectBall(gl,objArr[0].vertices,objArr[0].normals,objArr[0].texcoords);
                 plane=new ObjObjectPlane(gl,objArr[1].vertices,objArr[1].texcoords);
                 celestial=new Celestial(gl,500,shaderProgArray[1]);
@@ -25,6 +25,5 @@
                 setTimeout(function(){createObject();},10);
 			}
 		}
-
 
 
