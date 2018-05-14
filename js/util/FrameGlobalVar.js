@@ -16,7 +16,6 @@ var rttTexture;//颜色缓冲
 var shaderPath=[//着色器路径数组
     "shader/shader.bns",
     "shader/start.bns",
-    "shader/moon.bns",
     "shader/plane.bns"
 ];
 var shaderFlag=false;
