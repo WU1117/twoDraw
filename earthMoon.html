@@ -51,6 +51,7 @@
             loadImageTexture(gl, "pic/earth.png","earth");
             loadImageTexture(gl, "pic/earthNight.png","earthNight");
             loadImageTexture(gl, "pic/moon.png","moon");
+		    loadImageTexture(gl, "pic/moonNight.png","moonNight");
             //设置光源位置
             lightManager.setLightLocation(50,0,0);
 	        //初始化旋转角度
@@ -123,7 +124,7 @@
             //缩放
             ms.scale(0.5,0.5,0.5);
             //绘制月球
-            ooTriBall.drawEarth(ms,texMap["moon"],texMap["earthNight"],shaderProgArray[0]);
+            ooTriBall.drawEarth(ms,texMap["moon"],texMap["moonNight"],shaderProgArray[0]);
             //恢复现场
             ms.popMatrix();
             ms.pushMatrix();
