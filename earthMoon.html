@@ -44,8 +44,8 @@
 	        //初始化3D画布参数
 			canvas = document.getElementById('bncanvas');
 	        //着色器加载完了加载绘制者
-			loadBallObjFile("obj/ballT.obj");
-			loadBallObjFile("obj/plane.obj");
+			loadBallObjFile("obj/ballT.obj|ball");
+			loadBallObjFile("obj/plane.obj|plane");
 			createObject();
             //加载地球纹理图
             loadImageTexture(gl, "pic/earth.png","earth");
@@ -81,7 +81,6 @@
 
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rttTexture, 0);//为帧缓冲添加颜色
             gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);//添加深度信息
-
             gl.bindTexture(gl.TEXTURE_2D, null);
             gl.bindRenderbuffer(gl.RENDERBUFFER, null);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -90,7 +89,7 @@
 	    function drawFrame()
 	    {
 	        //若还没有加载完则不绘制
-	        if(!(ooTriBall&&celestial&&plane)) {
+	        if(!(plane&&celestial&&celestial1&&ooTriBall)) {
 	            alert("加载未完成");
 	            return;
 	        }
@@ -124,7 +123,7 @@
             //缩放
             ms.scale(0.5,0.5,0.5);
             //绘制月球
-            ooTriBall.drawMoon(ms,texMap["moon"],shaderProgArray[0]);
+            ooTriBall.drawEarth(ms,texMap["moon"],texMap["earthNight"],shaderProgArray[0]);
             //恢复现场
             ms.popMatrix();
             ms.pushMatrix();
@@ -172,3 +171,4 @@
 	</canvas>
 </body>
 </html>
+
